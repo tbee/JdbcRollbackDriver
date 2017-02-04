@@ -23,10 +23,10 @@ import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
 
 /**
- * This class uses MBeans to communicate state changes between RollbackOnlyDrivers.
+ * This class uses MBeans to communicate state changes between RollbackDrivers.
  * By using MBean it syncs multiple instances (e.g. because of different classloaders like in webapps).
  * Usage is simple:
- * - The RollbackOnlyDriver must register the MBean (registerMBean).
+ * - The RollbackDriver must register the MBean (registerMBean).
  * - It then must register itself to the notifications the MBean receives, in order to change it state (startControllingDriver).
  * - The tests can connect to this MBean and issue its methods (connect).
  */
@@ -45,7 +45,7 @@ implements RollbackControllerMBean {
 	// MBean implementation
 	
 	/** 
-	 * Invoke this MBean method to cause all RollbackOnlyDrivers to rollback
+	 * Invoke this MBean method to cause all RollbackDrivers to rollback
 	 */
 	@Override
 	public void rollbackAll() {
@@ -54,7 +54,7 @@ implements RollbackControllerMBean {
 	}
 
 	/** 
-	 * Invoke this MBean method to cause all RollbackOnlyDrivers to allow commits
+	 * Invoke this MBean method to cause all RollbackDrivers to allow commits
 	 */
 	@Override
 	public void allowTransactions() {
@@ -63,7 +63,7 @@ implements RollbackControllerMBean {
 	}
 
 	/** 
-	 * Invoke this MBean method to cause all RollbackOnlyDrivers to ignore commits
+	 * Invoke this MBean method to cause all RollbackDrivers to ignore commits
 	 */
 	@Override
 	public void disableTransactions() {
@@ -91,6 +91,7 @@ implements RollbackControllerMBean {
 //				Logger.getLogger("javax.management.mbeanserver").setLevel(Level.FINEST);
 				mbeanServer.registerMBean(mbean, objectName);
 				
+				// start listening for the socket as well
 				RollbackControllerSocket.startListening();
 			}
 		} 
@@ -102,7 +103,7 @@ implements RollbackControllerMBean {
 	/**
 	 * Make the driver change its state when the controller is told to do so 
 	 */
-	public static void startControllingDriver(final RollbackDriver rollbackOnlyDriver, final String label) {
+	public static void startControllingDriver(final RollbackDriver rollbackDriver, final String label) {
 		registerMBean();
 
 		if (logger.isInfoEnabled()) logger.info(label + "Taking control over the JDBC driver");
@@ -117,13 +118,13 @@ implements RollbackControllerMBean {
 					String type = notification.getType();
 					if (logger.isDebugEnabled()) logger.debug((label == null ? "" : label) + "Notification for coming in: " + type);
 					if (ROLLBACKAll_ACTION.equals(type)) {
-						rollbackOnlyDriver.rollback();
+						rollbackDriver.rollback();
 					}
 					if (ALLOWTRANSACTIONS_ACTION.equals(type)) {
-						rollbackOnlyDriver.setTransactionsEnabled(true);
+						rollbackDriver.setTransactionsEnabled(true);
 					}
 					if (DISABLETRANSACTIONS_ACTION.equals(type)) {
-						rollbackOnlyDriver.setTransactionsEnabled(false);
+						rollbackDriver.setTransactionsEnabled(false);
 					}
 				}
 			}, null, null);
@@ -135,17 +136,17 @@ implements RollbackControllerMBean {
 	
 	/**
 	 * Connect to the MBean from another JVM (e.g. the JVM running the Cucumber or integration tests)
-	 * Use -DRollbackOnlyControllerMBean.host=localhost to specify the host 
-	 * Use -DRollbackOnlyControllerMBean.port=7676 to specify the port 
+	 * Use -DRollbackControllerMBean.host=localhost to specify the host 
+	 * Use -DRollbackControllerMBean.port=7676 to specify the port 
 	 */
 	public static RollbackControllerMBean connect() {
-		String host = (System.getProperty("RollbackOnlyControllerMBean.host") == null ? "localhost" : System.getProperty("RollbackOnlyControllerMBean.host"));
+		String host = (System.getProperty("RollbackControllerMBean.host") == null ? "localhost" : System.getProperty("RollbackControllerMBean.host"));
 		if (host.contains(":")) {
 			host = "[" + host + "]"; // IPv6 requires brackets around the URL
 		}
-		int port = (System.getProperty("RollbackOnlyControllerMBean.port") == null ? 7676 : Integer.parseInt(System.getProperty("RollbackOnlyControllerMBean.port"))); 
+		int port = (System.getProperty("RollbackControllerMBean.port") == null ? 7676 : Integer.parseInt(System.getProperty("RollbackControllerMBean.port"))); 
 		String url = "service:jmx:rmi:///jndi/rmi://" + host + ":" + port + "/jmxrmi";
-		System.out.println("Connecting to RollbackOnlyControllerMBean running on " + url);
+		System.out.println("Connecting to RollbackControllerMBean running on " + url);
 		try {
 			JMXServiceURL serviceUrl = new JMXServiceURL(url);
 			JMXConnector jmxConnector = JMXConnectorFactory.connect(serviceUrl, null);
@@ -163,7 +164,7 @@ implements RollbackControllerMBean {
 	 * Connect to the MBean from inside this JVM 
 	 */
 	public static RollbackControllerMBean connectLocally() {
-		System.out.println("Connecting to RollbackOnlyControllerMBean on this JVM");
+		System.out.println("Connecting to RollbackControllerMBean on this JVM");
 		try {
 			MBeanServer mbeanServer = ManagementFactory.getPlatformMBeanServer(); 
 			ObjectName name = new ObjectName(MBEAN_NAME);

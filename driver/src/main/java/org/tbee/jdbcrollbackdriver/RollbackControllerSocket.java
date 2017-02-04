@@ -22,7 +22,7 @@ public class RollbackControllerSocket {
 
 	static void startListening() {
 		new Thread( () -> {
-			Thread.currentThread().setName("RollbackOnlyVPNHack-server");
+			Thread.currentThread().setName("RollbackVPNHack-server");
 			waitForData();	
 		}).start();
 	}
@@ -33,7 +33,7 @@ public class RollbackControllerSocket {
 	private static void waitForData() {
 		
 		// connect to the MBean locally (bypassing the VPN problems)
-		RollbackControllerMBean rollbackOnlyController = RollbackController.connectLocally();
+		RollbackControllerMBean rollbackController = RollbackController.connectLocally();
 		
 		// create a server socket
 		try (
@@ -44,7 +44,7 @@ public class RollbackControllerSocket {
 			while (true) {
 				
 				// wait for some instruction coming in
-				System.out.println("RollbackOnlyVPNHack-server waiting for client on port " + serverSocket.getLocalPort() + "...");
+				System.out.println("RollbackVPNHack-server waiting for client on port " + serverSocket.getLocalPort() + "...");
 				if (logger.isDebugEnabled()) logger.debug("Waiting for client on port " + serverSocket.getLocalPort() + "...");
 				try (
 					Socket server = serverSocket.accept();
@@ -55,17 +55,17 @@ public class RollbackControllerSocket {
 					DataInputStream in = new DataInputStream(server.getInputStream());
 					String type = in.readUTF();
 					if (logger.isDebugEnabled()) logger.debug("Processing command: " + type);
-					System.out.println("RollbackOnlyVPNHack-server connection coming in from " + server.getRemoteSocketAddress() + ", processing command: " + type);
+					System.out.println("RollbackVPNHack-server connection coming in from " + server.getRemoteSocketAddress() + ", processing command: " + type);
 					
 					// process instruction
 					if (ROLLBACKAll_ACTION.equals(type)) {
-						rollbackOnlyController.rollbackAll();
+						rollbackController.rollbackAll();
 					}
 					else if (ALLOWTRANSACTIONS_ACTION.equals(type)) {
-						rollbackOnlyController.allowTransactions();
+						rollbackController.allowTransactions();
 					}
 					else if (DISABLETRANSACTIONS_ACTION.equals(type)) {
-						rollbackOnlyController.disableTransactions();
+						rollbackController.disableTransactions();
 					}
 				} 
 				catch (IOException e) {
@@ -91,7 +91,7 @@ public class RollbackControllerSocket {
 			Socket client = new Socket(serverName, port);
 
 			// send
-			System.out.println("RollbackOnlyVPNHack-client connected to " + client.getRemoteSocketAddress() + ", sending " + s);
+			System.out.println("RollbackVPNHack-client connected to " + client.getRemoteSocketAddress() + ", sending " + s);
 			if (logger.isDebugEnabled()) logger.debug("Connected to " + client.getRemoteSocketAddress() + ", sending " + s);
 			OutputStream outToServer = client.getOutputStream();
 			DataOutputStream out = new DataOutputStream(outToServer);
@@ -106,12 +106,12 @@ public class RollbackControllerSocket {
 	}
 	
 	static private String getHost() {
-		String host = (System.getProperty("RollbackOnlyVPNHack.host") == null ? "localhost" : System.getProperty("RollbackOnlyControllerMBean.host"));
+		String host = (System.getProperty("RollbackVPNHack.host") == null ? "localhost" : System.getProperty("RollbackControllerMBean.host"));
 		return host; 
 	}
 	
 	static private int getPort() {
-		int port = (System.getProperty("RollbackOnlyVPNHack.port") == null ? 3333 : Integer.parseInt(System.getProperty("RollbackOnlyControllerMBean.port")));
+		int port = (System.getProperty("RollbackVPNHack.port") == null ? 3333 : Integer.parseInt(System.getProperty("RollbackControllerMBean.port")));
 		return port;
 	}
 	

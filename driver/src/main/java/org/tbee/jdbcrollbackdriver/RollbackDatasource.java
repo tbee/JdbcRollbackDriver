@@ -20,7 +20,7 @@ public class RollbackDatasource implements DataSource {
 		this.url = url;
 		this.username = username;
 		this.password = password;
-		connection = DriverManager.getConnection("jdbc:rollbackonly:net.sourceforge.jtds.jdbc.Driver:jtds:sqlserver://CARESS-TA-DB04:1433;instance=SQL2014;sendStringParametersAsUnicode=false;databaseName=CRS_TST", "CRSADMIN", "CRSADMIN");		
+		connection = DriverManager.getConnection(url);		
 	}
 
 	@Override

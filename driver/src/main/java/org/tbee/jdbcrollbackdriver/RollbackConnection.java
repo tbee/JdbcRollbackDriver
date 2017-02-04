@@ -9,10 +9,10 @@ import java.sql.SQLException;
 public class RollbackConnection implements InvocationHandler {
 	final static org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(RollbackDriver.class);
 
-	static public java.sql.Connection wrap(RollbackDriver rollbackOnlyDriver, java.sql.Connection connection, String label) throws SQLException
+	static public java.sql.Connection wrap(RollbackDriver rollbackDriver, java.sql.Connection connection, String label) throws SQLException
 	{
 		// we are the handler
-		RollbackConnection lThis = new RollbackConnection(rollbackOnlyDriver, connection, label);
+		RollbackConnection lThis = new RollbackConnection(rollbackDriver, connection, label);
 		java.sql.Connection lConnection = (java.sql.Connection) Proxy.newProxyInstance(Connection.class.getClassLoader(), new Class[] { java.sql.Connection.class }, lThis);
 		return lConnection;
 	}
@@ -20,8 +20,8 @@ public class RollbackConnection implements InvocationHandler {
 	// ================================================================================================
 	// Constructor
 	
-	public RollbackConnection(RollbackDriver rollbackOnlyDriver, Connection connection, String label) throws SQLException {
-		this.rollbackOnlyDriver = rollbackOnlyDriver;
+	public RollbackConnection(RollbackDriver rollbackDriver, Connection connection, String label) throws SQLException {
+		this.rollbackDriver = rollbackDriver;
 		this.connection = connection;
 		this.label = label;
 		
@@ -31,7 +31,7 @@ public class RollbackConnection implements InvocationHandler {
 		// read through locks
 		connection.createStatement().execute("SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED"); // SQLServer specific TBEERNOT
 	}
-	final private RollbackDriver rollbackOnlyDriver;
+	final private RollbackDriver rollbackDriver;
 	final private Connection connection;
 	final private String label;
 	
@@ -42,7 +42,7 @@ public class RollbackConnection implements InvocationHandler {
 	@Override
 	public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
 		if ("setAutoCommit".equals(method.getName())) {
-			if (rollbackOnlyDriver.getTransactionsEnabled()) {
+			if (rollbackDriver.getTransactionsEnabled()) {
 				if (logger.isTraceEnabled()) logger.trace(label + " allowing " + method.getName() + "(" + args[0] + ")");		
 			}
 			else {
@@ -51,7 +51,7 @@ public class RollbackConnection implements InvocationHandler {
 			}
 		}
 		if ("commit".equals(method.getName())) {
-			if (rollbackOnlyDriver.getTransactionsEnabled()) {
+			if (rollbackDriver.getTransactionsEnabled()) {
 				if (logger.isDebugEnabled()) logger.debug(label + " allowing " + method.getName());		
 			}
 			else {
@@ -60,7 +60,7 @@ public class RollbackConnection implements InvocationHandler {
 			}
 		}
 		if ("rollback".equals(method.getName())) {
-			if (rollbackOnlyDriver.getTransactionsEnabled()) {
+			if (rollbackDriver.getTransactionsEnabled()) {
 				if (logger.isDebugEnabled()) logger.debug(label + " allowing " + method.getName());
 			}
 			else {

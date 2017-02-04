@@ -16,12 +16,12 @@ import java.util.Properties;
  * One issue is the fact that mijnCaress uses multiple webapps, which will each create their own instance of the JDBC driver.
  * This driver will make sure that all connections of all drivers are rollbacked.
  * 
- * Each driver will only create one connection in order to minimize chances of locking conflicts.
+ * Each driver will  create one connection in order to minimize chances of locking conflicts.
  * Because certain processes (like logging in) requires a change to be written to the database, the driver can switch between allow or disable transactions.
  * For this use the corresponding static methods.
  * 
  *  Example:
- *  jdbc:rollbackonly:theId#net.sourceforge.jtds.jdbc.Driver:jtds:sqlserver://CARESS-TA-DB04:1433;instance=SQL2012;sendStringParametersAsUnicode=false;databaseName=CRS_TST_EP
+ *  jdbc:rollback:theId#net.sourceforge.jtds.jdbc.Driver:jtds:sqlserver://CARESS-TA-DB04:1433;instance=SQL2012;sendStringParametersAsUnicode=false;databaseName=CRS_TST_EP
  */
 public class RollbackDriver implements Driver {
 	final static org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(RollbackDriver.class);
@@ -30,11 +30,9 @@ public class RollbackDriver implements Driver {
 	// DriverManager
 
 	static {
-//		rollbackOnlyMulticast = new RollbackOnlyMulticast();
 		register();
 	}
-//	private static final RollbackOnlyMulticast rollbackOnlyMulticast;
-	static private RollbackControllerMBean rollbackOnlyControllerMBean = null;
+	static private RollbackControllerMBean rollbackControllerMBean = null;
 
 	/**
 	 * Register the Driver with DriverManager
@@ -43,7 +41,7 @@ public class RollbackDriver implements Driver {
 		// Register the Driver with DriverManager
 		try {
 			RollbackDriver driver = new RollbackDriver();
-			if (logger.isDebugEnabled()) logger.debug("registering RollbackOnlyDriver with the DriverManager [" + Integer.toHexString(driver.hashCode()) + "]");
+			if (logger.isDebugEnabled()) logger.debug("registering RollbackDriver with the DriverManager [" + Integer.toHexString(driver.hashCode()) + "]");
 			DriverManager.registerDriver(driver);			
 		} 
 		catch (Exception e) {
@@ -56,14 +54,13 @@ public class RollbackDriver implements Driver {
 	
 	public RollbackDriver() {
 		// a classloader may create multiple instances of this driver, we need to rollback them all
-		if (logger.isDebugEnabled()) logger.debug("Instantiated RollbackOnlyDriver [" + Integer.toHexString(hashCode()) + "]");
-//		rollbackOnlyMulticast.addDriver(this, label);
+		if (logger.isDebugEnabled()) logger.debug("Instantiated RollbackDriver [" + Integer.toHexString(hashCode()) + "]");
 	}
 	
 	// ================================================================================================
 	// Driver
 
-	final static public String PREFIX = "jdbc:rollbackonly:";
+	final static public String PREFIX = "jdbc:rollback:";
 
 	@Override
 	public Connection connect(String url, Properties info) throws SQLException {
@@ -160,39 +157,64 @@ public class RollbackDriver implements Driver {
 
 	static public void rollbackAll() {  
 		if (logger.isDebugEnabled()) logger.debug(label + "rollbackAll");
-//		rollbackOnlyMulticast.rollbackAllDrivers();
-//		getControllerBean().rollbackAll();
-		RollbackControllerSocket.rollbackAll();
+		if (usingSocket()) {
+			RollbackControllerSocket.rollbackAll();
+		}
+		else if (usingMulticast()) {
+			// rollbackMulticast.rollbackAllDrivers();
+		}
+		else {
+			getControllerBean().rollbackAll();
+		}
 	}
 	
 	static public void allowTransactions() {  
 		if (logger.isDebugEnabled()) logger.debug(label + "allowTransactions");
-//		rollbackOnlyMulticast.allowTransactions();
-//		getControllerBean().allowTransactions();
-		RollbackControllerSocket.allowTransactions();
+		if (usingSocket()) {
+			RollbackControllerSocket.allowTransactions();
+		}
+		else if (usingMulticast()) {
+			// rollbackMulticast.allowTransactions();
+		}
+		else {
+			getControllerBean().allowTransactions();
+		}
 	}
 	
 	static public void disableTransactions() {  
 		if (logger.isDebugEnabled()) logger.debug(label + "disableTransactions");
-//		rollbackOnlyMulticast.disableTransactions();
-//		getControllerBean().disableTransactions();
-		RollbackControllerSocket.disableTransactions();
+		if (usingSocket()) {
+			RollbackControllerSocket.disableTransactions();
+		}
+		else if (usingMulticast()) {
+			// rollbackMulticast.disableTransactions();
+		}
+		else {
+			getControllerBean().disableTransactions();
+		}
 	}
 	
 	static private RollbackControllerMBean getControllerBean() {
-		if (rollbackOnlyControllerMBean == null) {
-			rollbackOnlyControllerMBean = RollbackController.connect();
+		if (rollbackControllerMBean == null) {
+			rollbackControllerMBean = RollbackController.connect();
 		}
-		return rollbackOnlyControllerMBean;
+		return rollbackControllerMBean;
 	}
 
+	static private boolean usingSocket() {
+		return System.getProperty(RollbackControllerSocket.class.getSimpleName()) != null;
+	}
+
+	static private boolean usingMulticast() {
+		return System.getProperty(RollbackControllerMulticast.class.getSimpleName()) != null;
+	}
 	
 	// ================================================================================================
 	// Actual implementation of the API's actions (after the message has been received)
 
 	public void rollback() {
 		try {
-			if (logger.isDebugEnabled()) logger.debug(label + "rollback on RollbackOnlyDriver [" + Integer.toHexString(hashCode()) + "] " + actualConnection);
+			if (logger.isDebugEnabled()) logger.debug(label + "rollback on RollbackDriver [" + Integer.toHexString(hashCode()) + "] " + actualConnection);
 			if (actualConnection != null) {
 				setAutoCommitFalse();
 				System.out.println(label + "rolling back " + actualUrl);

@@ -34,12 +34,12 @@ public class RollbackControllerMulticast implements Runnable {
 	// ================================================================================================
 	// Drivers
 
-	public void addDriver(RollbackDriver rollbackOnlyDriver, String label) {
-	    if (logger.isDebugEnabled()) logger.debug(RollbackControllerMulticast.class.getSimpleName() + ": managing RollbackOnlyDriver[" + Integer.toHexString(rollbackOnlyDriver.hashCode()) + "]");
-		rollbackOnlyDrivers.add(new WeakReference<RollbackDriver>(rollbackOnlyDriver));
+	public void addDriver(RollbackDriver rollbackDriver, String label) {
+	    if (logger.isDebugEnabled()) logger.debug(RollbackControllerMulticast.class.getSimpleName() + ": managing RollbackDriver[" + Integer.toHexString(rollbackDriver.hashCode()) + "]");
+		rollbackDrivers.add(new WeakReference<RollbackDriver>(rollbackDriver));
 		this.label = label;
 	}
-	final static private List<Reference<RollbackDriver>> rollbackOnlyDrivers = new ArrayList<>();
+	final static private List<Reference<RollbackDriver>> rollbackDrivers = new ArrayList<>();
 	private String label;
 	
 	// ================================================================================================
@@ -49,7 +49,7 @@ public class RollbackControllerMulticast implements Runnable {
 	private int PORT = 7777;
 
 	private void connect() {
-		// default, configurable using -DRollbackOnlyMulticast-ip=1.2.3.4 or derive from the current host's IP address
+		// default, configurable using -DRollbackMulticast-ip=1.2.3.4 or derive from the current host's IP address
 		String ipString = System.getProperty(this.getClass().getSimpleName()+"-ip");
 		if (ipString != null && ipString.trim().length() > 0) {
 			IP_ADDRESS = ipString;
@@ -61,7 +61,7 @@ public class RollbackControllerMulticast implements Runnable {
 			}
 		}
 
-		// defalt or configurable using -DRollbackOnlyMulticast-port=1234
+		// defalt or configurable using -DRollbackMulticast-port=1234
 		String portString = System.getProperty(this.getClass().getSimpleName()+"-port");
 		if (portString != null && portString.trim().length() > 0) {
 			PORT = Integer.parseInt(portString);
@@ -118,20 +118,20 @@ public class RollbackControllerMulticast implements Runnable {
 			    if (logger.isDebugEnabled()) logger.debug(label + this.getClass().getSimpleName() + ": Received (" + Integer.toHexString(hashCode()) + "): " + received);
 			    
 			    // react to the received packet
-		    	for (Reference<RollbackDriver> rollbackOnlyDriverReference : new ArrayList<>(rollbackOnlyDrivers)) {
-		    		RollbackDriver rollbackOnlyDriver = rollbackOnlyDriverReference.get();
-		    		if (rollbackOnlyDriver == null) {
-		    			rollbackOnlyDrivers.remove(rollbackOnlyDriverReference);
+		    	for (Reference<RollbackDriver> rollbackDriverReference : new ArrayList<>(rollbackDrivers)) {
+		    		RollbackDriver rollbackDriver = rollbackDriverReference.get();
+		    		if (rollbackDriver == null) {
+		    			rollbackDrivers.remove(rollbackDriverReference);
 		    			continue;
 		    		}
 				    if (ROLLBACK.equals(received)) {
-				    	rollbackOnlyDriver.rollback();
+				    	rollbackDriver.rollback();
 				    }
 				    else if (ALLOWTRANSACTIONS.equals(received)) {
-		    			rollbackOnlyDriver.setTransactionsEnabled(true);
+		    			rollbackDriver.setTransactionsEnabled(true);
 				    }
 				    else if (DISABLETRANSACTIONS.equals(received)) {
-		    			rollbackOnlyDriver.setTransactionsEnabled(false);
+		    			rollbackDriver.setTransactionsEnabled(false);
 		    		}
 		    	}
 			}
