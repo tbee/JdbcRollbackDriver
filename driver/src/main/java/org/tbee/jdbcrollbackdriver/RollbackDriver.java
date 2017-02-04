@@ -13,7 +13,6 @@ import java.util.Properties;
  * It can be put in disabled transaction mode, which will ignore any commit and rollback call.
  * At the end of the test the rollback call on the driver rolls back all changes on all connections.
  * 
- * One issue is the fact that mijnCaress uses multiple webapps, which will each create their own instance of the JDBC driver.
  * This driver will make sure that all connections of all drivers are rollbacked.
  * 
  * Each driver will  create one connection in order to minimize chances of locking conflicts.
@@ -21,7 +20,7 @@ import java.util.Properties;
  * For this use the corresponding static methods.
  * 
  *  Example:
- *  jdbc:rollback:theId#net.sourceforge.jtds.jdbc.Driver:jtds:sqlserver://CARESS-TA-DB04:1433;instance=SQL2012;sendStringParametersAsUnicode=false;databaseName=CRS_TST_EP
+ *  jdbc:rollback:theId#net.sourceforge.jtds.jdbc.Driver:jtds:sqlserver:...
  */
 public class RollbackDriver implements Driver {
 	final static org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(RollbackDriver.class);

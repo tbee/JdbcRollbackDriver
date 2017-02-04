@@ -29,7 +29,7 @@ public class RollbackConnection implements InvocationHandler {
 		connection.setAutoCommit(false);
 		
 		// read through locks
-		connection.createStatement().execute("SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED"); // SQLServer specific TBEERNOT
+//		connection.createStatement().execute("SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED"); // SQLServer specific TBEERNOT
 	}
 	final private RollbackDriver rollbackDriver;
 	final private Connection connection;

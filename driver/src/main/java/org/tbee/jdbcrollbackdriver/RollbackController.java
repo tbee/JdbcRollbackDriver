@@ -35,7 +35,7 @@ implements RollbackControllerMBean {
 
 	final static org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(RollbackController.class);
 	
-	private static final String MBEAN_NAME = RollbackControllerMBean.class.getPackage().getName() + ":type=" + RollbackControllerMBean.class.getSimpleName();
+	static final String MBEAN_NAME = RollbackControllerMBean.class.getPackage().getName() + ":type=" + RollbackControllerMBean.class.getSimpleName();
 	
 	private static final String ROLLBACKAll_ACTION = "rollbackAll";
 	private static final String ALLOWTRANSACTIONS_ACTION = "allowTransactions";

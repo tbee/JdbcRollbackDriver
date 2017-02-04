@@ -4,9 +4,6 @@
 package org.tbee.jdbcrollbackdriver;
 
 /**
- * @author teugelink
- * @product CARESS
- * @project caress.javacore
  *
  */
 public interface RollbackControllerMBean {
