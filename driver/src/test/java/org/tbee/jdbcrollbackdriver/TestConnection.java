@@ -35,14 +35,12 @@ public class TestConnection implements Connection {
 
 	@Override
 	public Statement createStatement() throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		return new TestStatement();
 	}
 
 	@Override
 	public PreparedStatement prepareStatement(String sql) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		return new TestPreparedStatement();
 	}
 
 	@Override

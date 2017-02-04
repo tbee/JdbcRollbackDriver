@@ -77,11 +77,11 @@ public class RollbackConnection implements InvocationHandler {
 		
 		if ("commit".equals(method.getName())) {
 			if (logger.isDebugEnabled()) logger.debug(label + " SET ISOLATION READ UNCOMMITTED");
-			connection.createStatement().execute("SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED"); // SQLServer specific
+			connection.createStatement().execute("SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED"); // SQLServer specific TBEERNOT
 		}
 		if ("rollback".equals(method.getName())) {
 			if (logger.isDebugEnabled()) logger.debug(label + " SET ISOLATION READ UNCOMMITTED");
-			connection.createStatement().execute("SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED"); // SQLServer specific
+			connection.createStatement().execute("SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED"); // SQLServer specific TBEERNOT
 		}
 		return result;
 	}
