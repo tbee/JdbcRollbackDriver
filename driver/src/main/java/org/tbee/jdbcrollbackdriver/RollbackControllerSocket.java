@@ -21,6 +21,11 @@ public class RollbackControllerSocket {
 	private static final String DISABLETRANSACTIONS_ACTION = "disableTransactions";
 
 	static void startListening() {
+		if (!useSocket()) {
+			System.out.println(RollbackControllerSocket.class.getSimpleName() + ": not using socket");
+			return;
+		}
+		
 		serverThread = new Thread( () -> {
 			Thread.currentThread().setName(RollbackControllerSocket.class.getSimpleName() + "-server");
 			waitForData();	
@@ -54,7 +59,7 @@ public class RollbackControllerSocket {
 			while (forever) {
 				
 				// wait for some instruction coming in
-				System.out.println(RollbackControllerSocket.class.getSimpleName() + "-server waiting for client on port " + serverSocket.getLocalPort() + "...");
+				System.out.println(RollbackControllerSocket.class.getSimpleName() + "-server waiting for client on localhost:" + serverSocket.getLocalPort() + "...");
 				if (logger.isDebugEnabled()) logger.debug("Waiting for client on port " + serverSocket.getLocalPort() + "...");
 				try (
 					Socket server = serverSocket.accept();
@@ -116,16 +121,19 @@ public class RollbackControllerSocket {
 		}
 	}
 	
-	static private String getHost() {
-		String host = (System.getProperty(RollbackControllerSocket.class.getSimpleName() + ".host") == null ? "localhost" : System.getProperty("RollbackControllerMBean.host"));
+	static String getHost() {
+		String host = (System.getProperty(RollbackControllerSocket.class.getSimpleName() + ".host") == null ? "localhost" : System.getProperty(RollbackControllerSocket.class.getSimpleName() + ".host"));
 		return host; 
 	}
 	
-	static private int getPort() {
-		int port = (System.getProperty(RollbackControllerSocket.class.getSimpleName() + ".port") == null ? DEFAULT_PORT : Integer.parseInt(System.getProperty("RollbackControllerMBean.port")));
+	static int getPort() {
+		int port = (System.getProperty(RollbackControllerSocket.class.getSimpleName() + ".port") == null ? 0 : Integer.parseInt(System.getProperty(RollbackControllerSocket.class.getSimpleName() + ".port")));
 		return port;
 	}
-	static int DEFAULT_PORT = 3333;
+	
+	static boolean useSocket() {
+		return getPort() > 0;
+	}
 	
 	// ========================================================================================================================================================
 	// API

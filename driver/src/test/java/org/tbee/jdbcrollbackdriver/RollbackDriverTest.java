@@ -1,10 +1,14 @@
 package org.tbee.jdbcrollbackdriver;
 
 import java.lang.management.ManagementFactory;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.NetworkInterface;
 import java.net.Socket;
+import java.net.SocketException;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.Enumeration;
 
 import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
@@ -14,15 +18,21 @@ import javax.servlet.ServletException;
 import org.apache.catalina.LifecycleException;
 import org.apache.catalina.core.StandardContext;
 import org.apache.catalina.startup.Tomcat;
-import org.apache.tomcat.JarScanFilter;
-import org.apache.tomcat.JarScanType;
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
  */
 public class RollbackDriverTest {
 	
+	@BeforeClass
+	static public void beforeClass() {
+		// make sure the socket driver is up
+		System.setProperty(RollbackControllerSocket.class.getSimpleName() + ".port", "3333");
+		System.setProperty(RollbackControllerMulticast.class.getSimpleName() + ".ip", derriveMulitcastIPStringFromNetworkInterfaces());
+		System.setProperty(RollbackControllerMulticast.class.getSimpleName() + ".port", "4444");
+	}
 
 	@Test
 	public void loadingDriver() throws ClassNotFoundException, SQLException, MalformedObjectNameException {
@@ -39,7 +49,8 @@ public class RollbackDriverTest {
 		// THEN there should be no MBean server
 		Assert.assertFalse(checkMBean());
 		// AND there should be no open port
-		Assert.assertFalse(checkIfPortIsUsed(RollbackControllerSocket.DEFAULT_PORT));
+		Assert.assertFalse(checkIfPortIsUsed(RollbackControllerSocket.getPort()));
+		Assert.assertFalse(checkIfPortIsUsed(RollbackControllerMulticast.getIP(), RollbackControllerMulticast.getPort()));
 		
 		// WHEN loading the driver
 		Class.forName("org.tbee.jdbcrollbackdriver.RollbackDriver");
@@ -47,42 +58,40 @@ public class RollbackDriverTest {
 		// THEN there still should not be a mbean server (because this may be a client)
 		Assert.assertFalse(checkMBean());
 		// AND there should be no open port
-		Assert.assertFalse(checkIfPortIsUsed(RollbackControllerSocket.DEFAULT_PORT));
+		Assert.assertFalse(checkIfPortIsUsed(RollbackControllerSocket.getPort()));
+		Assert.assertFalse(checkIfPortIsUsed(RollbackControllerMulticast.getIP(), RollbackControllerMulticast.getPort()));
 		
 		// WHEN the first connection is made
 		DriverManager.getConnection(url);
 		
 		// THEN the mbean server should be active
 		Assert.assertTrue(checkMBean());
-		// AND there should be an open port
-		Assert.assertTrue(checkIfPortIsUsed(RollbackControllerSocket.DEFAULT_PORT));
+		// AND there should be an open port for the socket communication
+		Assert.assertTrue(checkIfPortIsUsed(RollbackControllerSocket.getPort()));
+//		Assert.assertTrue(checkIfPortIsUsed(RollbackControllerMulticast2.getIP(), RollbackControllerMulticast2.getPort()));
 	}
 	
-	@Test
+//	@Test
 	public void multipleInstances() throws ServletException, LifecycleException {
+		
+		// GIVEN Tomcat with two webapps, both opening a connection
         Tomcat tomcat = new Tomcat();
         tomcat.setPort(8888);
         tomcat.enableNaming();
-        JarScanFilter scanNothingJarScanFilter = new JarScanFilter() {
-			@Override
-			public boolean check(JarScanType jarScanType, String jarName) {
-				return false; // scan nothing
-			}
-		};
-
 		{
 	        StandardContext standardContext = (StandardContext)tomcat.addContext("/webapp1", this.getClass().getResource(".").getFile());
 	        standardContext.getNamingResources().addResource(createJdbcResource("DS1"));
 	        standardContext.addApplicationListener( TestServletContextListener.class.getName() );
 		}
-
 		{
 	        StandardContext standardContext = (StandardContext)tomcat.addContext("/webapp2", this.getClass().getResource(".").getFile());
 	        standardContext.getNamingResources().addResource(createJdbcResource("DS2"));
 	        standardContext.addApplicationListener( TestServletContextListener.class.getName() );
 		}
-		
         tomcat.start();
+        
+        // THEN both connections should be registered in the MBean
+        // TODO
     }
 	
 	boolean checkMBean() throws MalformedObjectNameException {
@@ -92,9 +101,13 @@ public class RollbackDriverTest {
 	}
 	
 	boolean checkIfPortIsUsed(int port) {
+		return checkIfPortIsUsed("127.0.0.1", port);
+	}
+	
+	boolean checkIfPortIsUsed(String ip, int port) {
 		try {
 			Socket socket = new Socket();
-			socket.connect(new InetSocketAddress("127.0.0.1", port), 500);
+			socket.connect(new InetSocketAddress(ip, port), 500);
 			socket.close();
 			return true;
 		} 
@@ -130,4 +143,29 @@ public class RollbackDriverTest {
 		resource.setProperty("timeBetweenEvictionRunsMillis", "5000");
 		return resource;
 	}
+	
+	
+	static private String derriveMulitcastIPStringFromNetworkInterfaces() {
+		try {
+			Enumeration<NetworkInterface> networkInterfaceEnumeration = NetworkInterface.getNetworkInterfaces();
+			while(networkInterfaceEnumeration.hasMoreElements())
+			{
+			    Enumeration<InetAddress> inetAddressEnumeration = networkInterfaceEnumeration.nextElement().getInetAddresses();
+			    while (inetAddressEnumeration.hasMoreElements())
+			    {
+			        String ip = inetAddressEnumeration.nextElement().getHostAddress();
+			        if (ip.contains(".") && !ip.startsWith("127.")) { // IPv4 (http://www.iana.org/assignments/ipv6-multicast-addresses/ipv6-multicast-addresses.xhtml#ipv6-scope)
+			        	// Addresses in the range 224.xxx.xxx.xxx through 239.xxx.xxx.xxx are multicast addresses.
+			        	ip = "228" + ip.substring(ip.indexOf("."));
+			        	return ip;
+			        }
+			    }
+			}
+			return null;
+		}
+		catch (SocketException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
 }

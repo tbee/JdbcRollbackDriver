@@ -88,11 +88,14 @@ implements RollbackControllerMBean {
 			if (!mbeanServer.isRegistered(objectName)) {
 				RollbackController mbean = new RollbackController();
 				if (logger.isInfoEnabled()) logger.info("Registering the MBean " + MBEAN_NAME);
-//				Logger.getLogger("javax.management.mbeanserver").setLevel(Level.FINEST);
+				//Logger.getLogger("javax.management.mbeanserver").setLevel(Level.FINEST);
 				mbeanServer.registerMBean(mbean, objectName);
 				
 				// start listening for the socket as well
 				RollbackControllerSocket.startListening();
+				
+				// start listening for multicast as well
+				RollbackControllerMulticast.startListening();
 			}
 		} 
 		catch (MalformedObjectNameException | InstanceAlreadyExistsException | NotCompliantMBeanException | MBeanException e) {
