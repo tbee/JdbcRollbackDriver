@@ -20,12 +20,17 @@ public class RollbackControllerSocket {
 	private static final String ALLOWTRANSACTIONS_ACTION = "allowTransactions";
 	private static final String DISABLETRANSACTIONS_ACTION = "disableTransactions";
 
+	/**
+	 * 
+	 */
 	static void startListening() {
+		// are we using sockets or not?
 		if (!useSocket()) {
 			System.out.println(RollbackControllerSocket.class.getSimpleName() + ": not using socket");
 			return;
 		}
 		
+		// start listening for commands coming in
 		serverThread = new Thread( () -> {
 			Thread.currentThread().setName(RollbackControllerSocket.class.getSimpleName() + "-server");
 			waitForData();	
@@ -43,7 +48,7 @@ public class RollbackControllerSocket {
 	}
 	
 	/**
-	 * @return
+	 * 
 	 */
 	private static void waitForData() {
 		
@@ -63,13 +68,12 @@ public class RollbackControllerSocket {
 				if (logger.isDebugEnabled()) logger.debug("Waiting for client on port " + serverSocket.getLocalPort() + "...");
 				try (
 					Socket server = serverSocket.accept();
+					DataInputStream in = new DataInputStream(server.getInputStream());
 				){
 					
 					// get the instruction
-					if (logger.isDebugEnabled()) logger.debug("Connection coming in from " + server.getRemoteSocketAddress());
-					DataInputStream in = new DataInputStream(server.getInputStream());
 					String type = in.readUTF();
-					if (logger.isDebugEnabled()) logger.debug("Processing command: " + type);
+					if (logger.isDebugEnabled()) logger.debug("Connection coming in from " + server.getRemoteSocketAddress() + ", processing command: " + type);
 					System.out.println(RollbackControllerSocket.class.getSimpleName() + "-server connection coming in from " + server.getRemoteSocketAddress() + ", processing command: " + type);
 					
 					// process instruction
@@ -101,36 +105,42 @@ public class RollbackControllerSocket {
 	private static void send(String s) {
 		String serverName = getHost();
 		int port = getPort();
-		try {
-			// connect
-			if (logger.isDebugEnabled()) logger.debug("Connecting to " + serverName + " on port " + port);
-			Socket client = new Socket(serverName, port);
 
+		// connect
+		if (logger.isDebugEnabled()) logger.debug("Connecting to " + serverName + " on port " + port);
+		try (
+			Socket client = new Socket(serverName, port);
+			DataOutputStream out = new DataOutputStream( client.getOutputStream() );
+		){
 			// send
 			System.out.println(RollbackControllerSocket.class.getSimpleName() + "-client connected to " + client.getRemoteSocketAddress() + ", sending " + s);
 			if (logger.isDebugEnabled()) logger.debug("Connected to " + client.getRemoteSocketAddress() + ", sending " + s);
-			OutputStream outToServer = client.getOutputStream();
-			DataOutputStream out = new DataOutputStream(outToServer);
 			out.writeUTF(s);
-			
-			// and forget
-			client.close();
 		} 
 		catch (IOException e) {
 			e.printStackTrace();
 		}
 	}
-	
+
+	/**
+	 * 
+	 */
 	static String getHost() {
 		String host = (System.getProperty(RollbackControllerSocket.class.getSimpleName() + ".host") == null ? "localhost" : System.getProperty(RollbackControllerSocket.class.getSimpleName() + ".host"));
 		return host; 
 	}
-	
+
+	/**
+	 * 
+	 */
 	static int getPort() {
 		int port = (System.getProperty(RollbackControllerSocket.class.getSimpleName() + ".port") == null ? 0 : Integer.parseInt(System.getProperty(RollbackControllerSocket.class.getSimpleName() + ".port")));
 		return port;
 	}
-	
+
+	/**
+	 * 
+	 */
 	static boolean useSocket() {
 		return getPort() > 0;
 	}
@@ -158,5 +168,4 @@ public class RollbackControllerSocket {
 	static public void disableTransactions() {
         send(DISABLETRANSACTIONS_ACTION);
 	}
-
 }

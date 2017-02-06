@@ -28,15 +28,10 @@ public class RollbackDriver implements Driver {
 	// ================================================================================================
 	// DriverManager
 
-	static {
-		register();
-	}
-	static private RollbackControllerMBean rollbackControllerMBean = null;
-
 	/**
 	 * Register the Driver with DriverManager
 	 */
-	static public void register() {
+	static {
 		// Register the Driver with DriverManager
 		try {
 			RollbackDriver driver = new RollbackDriver();
@@ -151,66 +146,13 @@ public class RollbackDriver implements Driver {
 		return driver.getParentLogger();
 	}
 	
-	// ================================================================================================
-	// Driver spanning API
-
-	static public void rollbackAll() {  
-		if (logger.isDebugEnabled()) logger.debug(label + "rollbackAll");
-		if (usingSocket()) {
-			RollbackControllerSocket.rollbackAll();
-		}
-		else if (usingMulticast()) {
-			// rollbackMulticast.rollbackAllDrivers();
-		}
-		else {
-			getControllerBean().rollbackAll();
-		}
-	}
-	
-	static public void allowTransactions() {  
-		if (logger.isDebugEnabled()) logger.debug(label + "allowTransactions");
-		if (usingSocket()) {
-			RollbackControllerSocket.allowTransactions();
-		}
-		else if (usingMulticast()) {
-			// rollbackMulticast.allowTransactions();
-		}
-		else {
-			getControllerBean().allowTransactions();
-		}
-	}
-	
-	static public void disableTransactions() {  
-		if (logger.isDebugEnabled()) logger.debug(label + "disableTransactions");
-		if (usingSocket()) {
-			RollbackControllerSocket.disableTransactions();
-		}
-		else if (usingMulticast()) {
-			// rollbackMulticast.disableTransactions();
-		}
-		else {
-			getControllerBean().disableTransactions();
-		}
-	}
-	
-	static private RollbackControllerMBean getControllerBean() {
-		if (rollbackControllerMBean == null) {
-			rollbackControllerMBean = RollbackController.connect();
-		}
-		return rollbackControllerMBean;
-	}
-
-	static private boolean usingSocket() {
-		return System.getProperty(RollbackControllerSocket.class.getSimpleName()) != null;
-	}
-
-	static private boolean usingMulticast() {
-		return System.getProperty(RollbackControllerMulticast.class.getSimpleName()) != null;
-	}
 	
 	// ================================================================================================
 	// Actual implementation of the API's actions (after the message has been received)
 
+	/**
+	 * The actual implementation of rollback
+	 */
 	public void rollback() {
 		try {
 			if (logger.isDebugEnabled()) logger.debug(label + "rollback on RollbackDriver [" + Integer.toHexString(hashCode()) + "] " + actualConnection);
@@ -224,11 +166,10 @@ public class RollbackDriver implements Driver {
 			throw new RuntimeException(e);
 		}
 	}
-	
-	public boolean getTransactionsEnabled() {
-		//if (logger.isDebugEnabled()) logger.debug(label + "getTransactionsEnabled=" + transactionsEnabled + " [" + Integer.toHexString(hashCode()) + "]");
-		return transactionsEnabled;
-	}
+
+	/**
+	 * The actual implementation of allow or disable transactions
+	 */
 	public void setTransactionsEnabled(boolean v) {
 		if (logger.isDebugEnabled()) logger.debug(label + "setTransactionsEnabled(" + v + ") [" + Integer.toHexString(hashCode()) + "]");
 		transactionsEnabled = v;
@@ -236,7 +177,14 @@ public class RollbackDriver implements Driver {
 			setAutoCommitFalse();
 		}
 	}
+	public boolean getTransactionsEnabled() {
+		//if (logger.isDebugEnabled()) logger.debug(label + "getTransactionsEnabled=" + transactionsEnabled + " [" + Integer.toHexString(hashCode()) + "]");
+		return transactionsEnabled;
+	}
 
+	/**
+	 * 
+	 */
 	private void setAutoCommitFalse() {
 		try {
 			if (actualConnection != null) {
@@ -248,4 +196,81 @@ public class RollbackDriver implements Driver {
 		}
 	}
 	private boolean transactionsEnabled = true;
+	
+	// ================================================================================================
+	// API
+
+	/**
+	 * This will use the active method of communication: MBean, socket or multicast
+	 */
+	static public void rollbackAll() {  
+		if (logger.isDebugEnabled()) logger.debug(label + "rollbackAll");
+		if (usingSocket()) {
+			RollbackControllerSocket.rollbackAll();
+		}
+		else if (usingMulticast()) {
+			// rollbackMulticast.rollbackAllDrivers();
+		}
+		else {
+			getControllerBean().rollbackAll();
+		}
+	}
+	
+	/**
+	 * This will use the active method of communication: MBean, socket or multicast
+	 */
+	static public void allowTransactions() {  
+		if (logger.isDebugEnabled()) logger.debug(label + "allowTransactions");
+		if (usingSocket()) {
+			RollbackControllerSocket.allowTransactions();
+		}
+		else if (usingMulticast()) {
+			// rollbackMulticast.allowTransactions();
+		}
+		else {
+			getControllerBean().allowTransactions();
+		}
+	}
+	
+	/**
+	 * This will use the active method of communication: MBean, socket or multicast
+	 */
+	static public void disableTransactions() {  
+		if (logger.isDebugEnabled()) logger.debug(label + "disableTransactions");
+		if (usingSocket()) {
+			RollbackControllerSocket.disableTransactions();
+		}
+		else if (usingMulticast()) {
+			// rollbackMulticast.disableTransactions();
+		}
+		else {
+			getControllerBean().disableTransactions();
+		}
+	}
+
+	/**
+	 * 
+	 */
+	static private boolean usingSocket() {
+		return System.getProperty(RollbackControllerSocket.class.getSimpleName()) != null;
+	}
+
+	/**
+	 * 
+	 */
+	static private boolean usingMulticast() {
+		return System.getProperty(RollbackControllerMulticast.class.getSimpleName()) != null;
+	}
+	
+	/**
+	 * 
+	 */
+	static private RollbackControllerMBean getControllerBean() {
+		if (rollbackControllerMBean == null) {
+			rollbackControllerMBean = RollbackController.connect();
+		}
+		return rollbackControllerMBean;
+	}
+	static private RollbackControllerMBean rollbackControllerMBean = null;
+	
 }

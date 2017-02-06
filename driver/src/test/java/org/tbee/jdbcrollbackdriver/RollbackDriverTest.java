@@ -50,7 +50,7 @@ public class RollbackDriverTest {
 		Assert.assertFalse(checkMBean());
 		// AND there should be no open port
 		Assert.assertFalse(checkIfPortIsUsed(RollbackControllerSocket.getPort()));
-		Assert.assertFalse(checkIfPortIsUsed(RollbackControllerMulticast.getIP(), RollbackControllerMulticast.getPort()));
+		// unfortunately you cannot check a multicast port, since there is no server
 		
 		// WHEN loading the driver
 		Class.forName("org.tbee.jdbcrollbackdriver.RollbackDriver");
@@ -59,7 +59,7 @@ public class RollbackDriverTest {
 		Assert.assertFalse(checkMBean());
 		// AND there should be no open port
 		Assert.assertFalse(checkIfPortIsUsed(RollbackControllerSocket.getPort()));
-		Assert.assertFalse(checkIfPortIsUsed(RollbackControllerMulticast.getIP(), RollbackControllerMulticast.getPort()));
+		// unfortunately you cannot check a multicast port, since there is no server
 		
 		// WHEN the first connection is made
 		DriverManager.getConnection(url);
@@ -68,7 +68,7 @@ public class RollbackDriverTest {
 		Assert.assertTrue(checkMBean());
 		// AND there should be an open port for the socket communication
 		Assert.assertTrue(checkIfPortIsUsed(RollbackControllerSocket.getPort()));
-//		Assert.assertTrue(checkIfPortIsUsed(RollbackControllerMulticast2.getIP(), RollbackControllerMulticast2.getPort()));
+		// unfortunately you cannot check a multicast port, since there is no server
 	}
 	
 //	@Test
