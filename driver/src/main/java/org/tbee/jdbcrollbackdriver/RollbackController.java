@@ -5,6 +5,8 @@ package org.tbee.jdbcrollbackdriver;
 
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
+import java.util.HashMap;
+import java.util.Map;
 
 import javax.management.InstanceAlreadyExistsException;
 import javax.management.InstanceNotFoundException;
@@ -152,7 +154,7 @@ implements RollbackControllerMBean {
 		System.out.println("Connecting to RollbackControllerMBean running on " + url);
 		try {
 			JMXServiceURL serviceUrl = new JMXServiceURL(url);
-			JMXConnector jmxConnector = JMXConnectorFactory.connect(serviceUrl, null);
+			JMXConnector jmxConnector = JMXConnectorFactory.connect(serviceUrl, getCredentials());
 			MBeanServerConnection mbeanConn = jmxConnector.getMBeanServerConnection();
 			ObjectName name = new ObjectName(MBEAN_NAME);
 			RollbackControllerMBean mbean = MBeanServerInvocationHandler.newProxyInstance(mbeanConn, name, RollbackControllerMBean.class, false);
@@ -162,7 +164,26 @@ implements RollbackControllerMBean {
 			throw new RuntimeException("Error connecting to " + url, e);
 		}
 	}
-	
+
+	/**
+	 * Get the credentials from the system properties
+	 */
+	private static Map<String, String[]> getCredentials() {
+		
+		// see if credentials are configured
+		String username = System.getProperty(RollbackControllerMBean.class.getSimpleName() + ".user");
+		String password = System.getProperty(RollbackControllerMBean.class.getSimpleName() + ".password");
+		if (username == null || password == null) {
+			return null;
+		}
+
+		// return the credentials
+		Map<String, String[]> env = new HashMap<>();
+		String[] creds = { username, password };
+		env.put(JMXConnector.CREDENTIALS, creds);
+		return env;
+	}
+
 	/**
 	 * Connect to the MBean from inside this JVM 
 	 */
